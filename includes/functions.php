@@ -1,175 +1,134 @@
 <?php
-// functions.php - Utility functions for outboard sales system
+// functions.php - Utility functions
 
-/**
- * Sanitize input data
- */
-function sanitize_input($data) {
-    $data = trim($data);
-    $data = stripslashes($data);
-    $data = htmlspecialchars($data);
-    return $data;
-}
-
-/**
- * Format price with currency
- */
-function format_price($price) {
-    return '$' . number_format($price, 2);
-}
-
-/**
- * Generate product URL slug
- */
-function create_slug($string) {
-    $slug = strtolower($string);
-    $slug = preg_replace('/[^a-z0-9-]/', '-', $slug);
-    $slug = preg_replace('/-+/', '-', $slug);
-    return trim($slug, '-');
-}
-
-/**
- * Check if user is admin
- */
-function is_admin() {
-    return isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
-}
-
-/**
- * Check if user is logged in
- */
-function is_logged_in() {
-    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
-}
-
-/**
- * Redirect with message
- */
-function redirect($url, $message = '', $type = 'info') {
-    if (!empty($message)) {
-        $_SESSION['flash_message'] = $message;
-        $_SESSION['flash_type'] = $type;
-    }
-    header("Location: $url");
+// Redirect to another page
+function redirect($url)
+{
+    header("Location: " . $url);
     exit();
 }
 
-/**
- * Display flash messages
- */
-function display_flash_message() {
-    if (isset($_SESSION['flash_message'])) {
-        $message = $_SESSION['flash_message'];
-        $type = $_SESSION['flash_type'] ?? 'info';
-        echo "<div class='alert alert-$type'>$message</div>";
-        unset($_SESSION['flash_message'], $_SESSION['flash_type']);
+// Sanitize input data
+function sanitizeInput($data)
+{
+    if (is_array($data)) {
+        return array_map('sanitizeInput', $data);
     }
+
+    $data = trim($data);
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+
+    return $data;
 }
 
-/**
- * Upload product image
- */
-function upload_product_image($file, $product_id) {
-    $target_dir = "assets/uploads/products/";
-    $file_extension = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
-    $new_filename = "product_" . $product_id . "_" . time() . "." . $file_extension;
-    $target_file = $target_dir . $new_filename;
-    
-    // Check if image file is valid
-    $allowed_types = array("jpg", "jpeg", "png", "gif");
-    if (!in_array($file_extension, $allowed_types)) {
-        throw new Exception("Only JPG, JPEG, PNG & GIF files are allowed");
+// Get current URL
+function getCurrentUrl()
+{
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+    return $protocol . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+}
+
+// Format price
+function formatPrice($price)
+{
+    return '$' . number_format($price, 2);
+}
+
+// Generate random token
+function generateToken($length = 32)
+{
+    return bin2hex(random_bytes($length));
+}
+
+// Check if request is AJAX
+function isAjaxRequest()
+{
+    return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+}
+
+// Get pagination parameters
+function getPaginationParams($currentPage, $itemsPerPage)
+{
+    $currentPage = max(1, (int) $currentPage);
+    $offset = ($currentPage - 1) * $itemsPerPage;
+
+    return [
+        'current_page' => $currentPage,
+        'offset' => $offset,
+        'limit' => $itemsPerPage
+    ];
+}
+
+// Upload file with validation
+function uploadFile($file, $targetDir, $allowedTypes = [], $maxSize = 2097152)
+{
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        throw new Exception("File upload error: " . $file['error']);
     }
-    
-    // Check file size (5MB max)
-    if ($file["size"] > 5000000) {
-        throw new Exception("File is too large. Maximum size is 5MB");
+
+    // Check file size
+    if ($file['size'] > $maxSize) {
+        throw new Exception("File is too large. Maximum size: " . ($maxSize / 1024 / 1024) . "MB");
     }
-    
-    if (move_uploaded_file($file["tmp_name"], $target_file)) {
-        return $new_filename;
+
+    // Check file type
+    $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!empty($allowedTypes) && !in_array($fileExt, $allowedTypes)) {
+        throw new Exception("Invalid file type. Allowed: " . implode(', ', $allowedTypes));
+    }
+
+    // Generate unique filename
+    $fileName = uniqid() . '_' . time() . '.' . $fileExt;
+    $targetPath = $targetDir . $fileName;
+
+    // Create directory if it doesn't exist
+    if (!file_exists($targetDir)) {
+        mkdir($targetDir, 0755, true);
+    }
+
+    // Move uploaded file
+    if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+        throw new Exception("Failed to move uploaded file.");
+    }
+
+    return $fileName;
+}
+
+// Delete file
+function deleteFile($filePath)
+{
+    if (file_exists($filePath)) {
+        return unlink($filePath);
+    }
+    return false;
+}
+
+// Send JSON response
+function sendJsonResponse($data, $statusCode = 200)
+{
+    http_response_code($statusCode);
+    header('Content-Type: application/json');
+    echo json_encode($data);
+    exit();
+}
+
+// Validate email
+function isValidEmail($email)
+{
+    return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+// Get client IP address
+function getClientIp()
+{
+    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+        return $_SERVER['HTTP_CLIENT_IP'];
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        return $_SERVER['HTTP_X_FORWARDED_FOR'];
     } else {
-        throw new Exception("Failed to upload image");
+        return $_SERVER['REMOTE_ADDR'];
     }
-}
-
-/**
- * Get cart item count
- */
-function get_cart_count() {
-    return isset($_SESSION['cart']) ? array_sum($_SESSION['cart']) : 0;
-}
-
-/**
- * Calculate cart total
- */
-function calculate_cart_total($pdo) {
-    if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
-        return 0;
-    }
-    
-    $total = 0;
-    $product_ids = implode(',', array_keys($_SESSION['cart']));
-    $stmt = $pdo->prepare("SELECT id, price FROM products WHERE id IN ($product_ids)");
-    $stmt->execute();
-    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    foreach ($products as $product) {
-        $quantity = $_SESSION['cart'][$product['id']];
-        $total += $product['price'] * $quantity;
-    }
-    
-    return $total;
-}
-
-/**
- * Generate order number
- */
-function generate_order_number() {
-    return 'ORD' . date('Ymd') . rand(1000, 9999);
-}
-
-/**
- * Send email notification
- */
-function send_email($to, $subject, $body) {
-    // This would integrate with PHPMailer
-    require_once 'lib/PHPMailer/PHPMailer.php';
-    // Email sending logic here
-    return true; // simplified for example
-}
-
-/**
- * Log admin actions
- */
-function log_admin_action($action, $details = '') {
-    global $pdo;
-    $user_id = $_SESSION['user_id'] ?? 0;
-    $stmt = $pdo->prepare("INSERT INTO admin_logs (user_id, action, details, created_at) VALUES (?, ?, ?, NOW())");
-    $stmt->execute([$user_id, $action, $details]);
-}
-
-/**
- * Require admin access
- */
-function require_admin() {
-    if (!is_logged_in() || !is_admin()) {
-        redirect('/pages/account/login.php', 'Admin access required', 'error');
-    }
-}
-
-/**
- * Get product categories
- */
-function get_categories($pdo) {
-    $stmt = $pdo->query("SELECT * FROM categories ORDER BY name");
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-/**
- * Format date for display
- */
-function format_date($date) {
-    return date('M j, Y', strtotime($date));
 }
 ?>

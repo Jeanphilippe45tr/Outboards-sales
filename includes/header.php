@@ -1,8 +1,11 @@
 <?php
 // Start session if not already started
-if (session_status() == PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// Set default timezone
+date_default_timezone_set('UTC');
 
 // Check if user is logged in
 $isLoggedIn = isset($_SESSION['user_id']);
@@ -40,16 +43,15 @@ $username = $isLoggedIn ? $_SESSION['username'] : '';
             <div class="header-content">
                 <!-- Logo -->
                 <div class="logo">
-<<<<<<< Updated upstream
-                    <a href="<?php echo $base_url; ?>index.php">
+                    <<<<<<< Updated upstream <a href="<?php echo $base_url; ?>index.php">
                         <img src="<?php echo $base_url; ?>assets/images/icons/logo.png" alt="MarinePower Outboards">
                         <span>PowerWave</span>
-=======
-                    <a href="<?php echo BASE_URL; ?>index.php">
-                        <img src="<?php echo BASE_URL; ?>assets/images/icons/logo.png" alt="MarinePower Outboards">
-                        <span>MarinePower</span>
->>>>>>> Stashed changes
-                    </a>
+                        =======
+                        <a href="<?php echo BASE_URL; ?>index.php">
+                            <img src="<?php echo BASE_URL; ?>assets/images/icons/logo.png" alt="MarinePower Outboards">
+                            <span>MarinePower</span>
+                            >>>>>>> Stashed changes
+                        </a>
                 </div>
 
                 <!-- Main Navigation -->

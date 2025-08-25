@@ -1,165 +1,141 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
 
+require_once(__DIR__ . '/../../includes/config.php');
+require_once(__DIR__ . '/../../includes/database.php');
+require_once(__DIR__ . '/../../includes/auth.php');
+require_once(__DIR__ . '/../../includes/functions.php');
+
+// Redirect if already logged in
 if (isLoggedIn()) {
-    header("Location: " . (isAdmin() ? ADMIN_URL : BASE_URL . "user/dashboard.php"));
+    $redirect = isAdmin() ? '../admin/dashboard.php' : 'dashboard.php';
+    header('Location: ' . $redirect);
     exit();
 }
 
 $error = '';
+$email = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
-    $password = trim($_POST['password']);
+    $password = $_POST['password'];
 
     if (empty($email) || empty($password)) {
         $error = 'Please fill in all fields';
-    } elseif (loginUser($email, $password)) {
-        header("Location: " . (isAdmin() ? ADMIN_URL : BASE_URL . "admin/dashboard.php"));
-        exit();
     } else {
-        $error = 'Invalid username or password';
+        $user = loginUser($email, $password);
+
+        if ($user) {
+            // Login successful
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['first_name'] = $user['first_name'];
+            $_SESSION['last_name'] = $user['last_name'];
+            $_SESSION['is_admin'] = $user['is_admin'];
+
+            // Redirect based on user type
+            if ($user['is_admin']) {
+                header('Location: ../admin/dashboard.php');
+            } else {
+                header('Location: dashboard.php');
+            }
+            exit();
+        } else {
+            $error = 'Invalid email or password';
+        }
     }
 }
 
-$pageTitle = "Login - MarinePower Outboards";
-require_once __DIR__ . '/../includes/header.php';
+// Include header
+$page_title = 'Login - WaveMaster Outboards';
+include(__DIR__ . '/../../includes/header.php');
 ?>
-<!-- Wave background elements -->
-<div class="wave"></div>
-<div class="wave"></div>
-<div class="wave"></div>
 
-<div class="login-section">
-    <div class="login-container">
-        <div class="login-header">
-            <div class="login-logo">
-                <img src="<?php echo BASE_URL; ?>assets/images/icons/logo-white.png" alt="MarinePower Outboards">
-                <span>MarinePower</span>
-            </div>
-            <h1>Welcome Back</h1>
-            <p>Sign in to access your account</p>
-        </div>
+<div class="auth-container">
+    <div class="wave-bg"></div>
 
-        <div class="login-body">
-            <!-- Alert messages (will be shown/hidden by PHP) -->
-            <?php if ($error): ?>
-                <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
-            <?php endif; ?>
-            <div class="alert alert-success" id="success-message">
-                Login successful! Redirecting to your account...
-            </div>
-
-            <form action="login.php" method="POST" id="login-form">
-                <div class="form-group">
-                    <label for="username">Username or Email</label>
-                    <input type="text" class="form-control" id="username" name="username"
-                        placeholder="Enter your username or email" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" class="form-control" id="password" name="password"
-                        placeholder="Enter your password" required>
-                    <span class="password-toggle" id="password-toggle">
-                        <i class="fas fa-eye"></i>
-                    </span>
-                </div>
-
-                <div class="remember-forgot">
-                    <div class="remember-me">
-                        <input type="checkbox" id="remember" name="remember">
-                        <label for="remember">Remember me</label>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+                <div class="auth-card">
+                    <div class="card-header">
+                        <div class="logo-container">
+                            <img src="../assets/images/logo.png" alt="WaveMaster Outboards" class="logo">
+                            <h1>WaveMaster Outboards</h1>
+                        </div>
+                        <h2 class="animate-float">Welcome Back</h2>
+                        <p>Sign in to access your account</p>
                     </div>
-                    <a href="<?php echo BASE_URL; ?>pages/account/forgot-password.php"
-                        class="forgot-password">Forgot Password?</a>
+
+                    <div class="card-body">
+                        <?php if ($error): ?>
+                            <div class="alert alert-danger animate-shake">
+                                <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <form method="POST" action="" class="auth-form">
+                            <div class="form-group">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope"></i> Email Address
+                                </label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                    value="<?php echo htmlspecialchars($email); ?>" required
+                                    placeholder="Enter your email">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-lock"></i> Password
+                                </label>
+                                <input type="password" class="form-control" id="password" name="password" required
+                                    placeholder="Enter your password">
+                                <div class="password-toggle">
+                                    <i class="fas fa-eye" id="togglePassword"></i>
+                                </div>
+                            </div>
+
+                            <div class="form-group form-check">
+                                <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                                <label class="form-check-label" for="remember">Remember me</label>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg btn-block waves-effect">
+                                <i class="fas fa-sign-in-alt"></i> Sign In
+                            </button>
+                        </form>
+
+                        <div class="auth-links">
+                            <a href="register.php" class="link-sea">
+                                <i class="fas fa-user-plus"></i> Create New Account
+                            </a>
+                            <a href="forgot-password.php" class="link-sea">
+                                <i class="fas fa-key"></i> Forgot Password?
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <p>&copy; <?php echo date('Y'); ?> WaveMaster Outboards. All rights reserved.</p>
+                    </div>
                 </div>
-
-                <button type="submit" class="btn-login" name="login">Sign In</button>
-            </form>
-
-            <div class="login-divider">
-                <span>Or continue with</span>
-            </div>
-
-            <button class="btn-social">
-                <img src="<?php echo BASE_URL; ?>assets/images/icons/google.png" alt="Google">
-                Sign in with Google
-            </button>
-
-            <button class="btn-social">
-                <img src="<?php echo BASE_URL; ?>assets/images/icons/facebook.png" alt="Facebook">
-                Sign in with Facebook
-            </button>
-
-            <div class="login-footer">
-                Don't have an account? <a href="register.php">Create one
-                    here</a>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Password visibility toggle
-        const passwordToggle = document.getElementById('password-toggle');
-        const passwordField = document.getElementById('password');
-
-        passwordToggle.addEventListener('click', function() {
-            if (passwordField.type === 'password') {
-                passwordField.type = 'text';
-                passwordToggle.innerHTML = '<i class="fas fa-eye-slash"></i>';
-            } else {
-                passwordField.type = 'password';
-                passwordToggle.innerHTML = '<i class="fas fa-eye"></i>';
-            }
-        });
-
-        // Form validation
-        const loginForm = document.getElementById('login-form');
-
-        loginForm.addEventListener('submit', function(event) {
-            let isValid = true;
-            const username = document.getElementById('username');
-            const password = document.getElementById('password');
-
-            // Basic validation
-            if (username.value.trim() === '') {
-                isValid = false;
-                highlightError(username);
-            } else {
-                removeHighlight(username);
-            }
-
-            if (password.value === '') {
-                isValid = false;
-                highlightError(password);
-            } else {
-                removeHighlight(password);
-            }
-
-            if (!isValid) {
-                event.preventDefault();
-                // Show error message
-                const errorMessage = document.getElementById('error-message');
-                errorMessage.textContent = 'Please fill in all required fields.';
-                errorMessage.style.display = 'block';
-            }
-        });
-
-        function highlightError(element) {
-            element.style.borderColor = 'var(--danger)';
-            element.style.boxShadow = '0 0 0 3px rgba(220, 53, 69, 0.2)';
-        }
-
-        function removeHighlight(element) {
-            element.style.borderColor = '';
-            element.style.boxShadow = '';
-        }
+    // Password visibility toggle
+    document.getElementById('togglePassword').addEventListener('click', function () {
+        const passwordInput = document.getElementById('password');
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
     });
 </script>
 
-<!-- Font Awesome for icons -->
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
+<?php include '../includes/footer.php'; ?>

@@ -1,422 +1,306 @@
 <?php
-require_once __DIR__ . '/../includes/auth';
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
 
+
+require_once(__DIR__ . '/../../includes/config.php');
+require_once(__DIR__ . '/../../includes/database.php');
+require_once(__DIR__ . '/../../includes/auth.php');
+require_once(__DIR__ . '/../../includes/functions.php');
+
+// Redirect if already logged in
 if (isLoggedIn()) {
-    header("Location: " . (isAdmin() ? ADMIN_URL : BASE_URL . "user/dashboard.php"));
+    $redirect = isAdmin() ? '../admin/dashboard.php' : 'dashboard.php';
+    header('Location: ' . $redirect);
     exit();
 }
 
-$errors = [];
+$error = '';
 $success = '';
+$formData = [
+    'username' => '',
+    'email' => '',
+    'first_name' => '',
+    'last_name' => '',
+    'phone' => '',
+    'address' => '',
+    'city' => '',
+    'state' => '',
+    'zip_code' => ''
+];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Sanitize inputs
-    $username = trim($_POST['username']);
-    $email = trim($_POST['email']);
-    $password = trim($_POST['password']);
-    $confirm_password = trim($_POST['confirm_password']);
-    $first_name = trim($_POST['first_name']);
-    $last_name = trim($_POST['last_name']);
-    $phone = trim($_POST['phone'] ?? '');
+    // Sanitize input
+    $formData = array_map('trim', $_POST);
 
-    // Validate inputs
-    if (empty($username)) {
-        $errors['username'] = 'Username is required';
-    } elseif (strlen($username) < 4) {
-        $errors['username'] = 'Username must be at least 4 characters';
-    }
+    $username = $formData['username'];
+    $email = $formData['email'];
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+    $first_name = $formData['first_name'];
+    $last_name = $formData['last_name'];
+    $phone = $formData['phone'];
 
-    if (empty($email)) {
-        $errors['email'] = 'Email is required';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors['email'] = 'Please enter a valid email address';
-    }
-
-    if (empty($password)) {
-        $errors['password'] = 'Password is required';
+    // Validate input
+    if (
+        empty($username) || empty($email) || empty($password) || empty($confirm_password) ||
+        empty($first_name) || empty($last_name)
+    ) {
+        $error = 'Please fill in all required fields';
+    } elseif ($password !== $confirm_password) {
+        $error = 'Passwords do not match';
     } elseif (strlen($password) < 8) {
-        $errors['password'] = 'Password must be at least 8 characters';
-    }
-
-    if ($password !== $confirm_password) {
-        $errors['confirm_password'] = 'Passwords do not match';
-    }
-
-    if (empty($first_name)) {
-        $errors['first_name'] = 'First name is required';
-    }
-
-    if (empty($last_name)) {
-        $errors['last_name'] = 'Last name is required';
-    }
-
-    // Check if username or email already exists
-    if (empty($errors)) {
-        global $pdo;
-
-        $stmt = $pdo->prepare("SELECT user_id FROM users WHERE username = ? OR email = ?");
-        $stmt->execute([$username, $email]);
-
-        if ($stmt->fetch()) {
-            $errors['general'] = 'Username or email already exists';
-        }
-    }
-
-    // If no errors, register the user
-    if (empty($errors)) {
-        $password_hash = password_hash($password, PASSWORD_DEFAULT);
-
-        $stmt = $pdo->prepare("INSERRegisterT INTO users 
-            (username, email, password_hash, first_name, last_name, phone, created_at) 
-            VALUES (?, ?, ?, ?, ?, ?, NOW())");
-
-        if ($stmt->execute([$username, $email, $password_hash, $first_name, $last_name, $phone])) {
-            $success = 'Registration successful! You can now login.';
-            // Clear form
-            $username = $email = $first_name = $last_name = $phone = '';
+        $error = 'Password must be at least 8 characters long';
+    } else {
+        // Check if username or email already exists
+        if (usernameExists($username)) {
+            $error = 'Username already taken';
+        } elseif (emailExists($email)) {
+            $error = 'Email already registered';
         } else {
-            $errors['general'] = 'Registration failed. Please try again.';
+            // Register user
+            $userId = registerUser($formData, $password);
+
+            if ($userId) {
+                $success = 'Registration successful! You can now login.';
+                // Clear form data
+                $formData = array_fill_keys(array_keys($formData), '');
+            } else {
+                $error = 'Registration failed. Please try again.';
+            }
         }
     }
 }
 
-$pageTitle = "Register - PowerWave Outboards";
-require_once __DIR__ . '/../includes/header.php';
+// Include header
+$page_title = 'Register - WaveMaster Outboards';
+include(__DIR__ . '/../../includes/header.php');
 ?>
 
+<div class="auth-container">
+    <div class="wave-bg"></div>
 
-<!-- Wave background elements -->
-<div class="wave"></div>
-<div class="wave"></div>
-<div class="wave"></div>
-
-<div class="register-section">
-    <div class="register-container">
-        <div class="register-header">
-            <div class="register-logo">
-                <img src="<?php echo BASE_URL; ?>assets/images/icons/logo-white.png" alt="MarinePower Outboards">
-                <span>PowerWave</span>
-            </div>
-            <h1>Create Your Account</h1>
-            <p>Join us to explore our premium outboard motors</p>
-        </div>
-
-        <div class="register-body">
-            <!-- Progress Steps -->
-            <div class="progress-steps">
-                <div class="progress-bar" style="width: 33%;"></div>
-                <div class="step completed">
-                    <div class="step-icon">1</div>
-                    <div class="step-text">Account</div>
-                </div>
-                <div class="step active">
-                    <div class="step-icon">2</div>
-                    <div class="step-text">Details</div>
-                </div>
-                <div class="step">
-                    <div class="step-icon">3</div>
-                    <div class="step-text">Complete</div>
-                </div>
-            </div>
-
-            <!-- Alert messages (will be shown/hidden by PHP) -->
-            <div class="alert alert-error" id="error-message">
-                Please fix the errors in the form.
-            </div>
-
-            <div class="alert alert-success" id="success-message">
-                Registration successful! Redirecting to your account...
-            </div>
-
-            <form action="<?php echo BASE_URL; ?>includes/register.php" method="POST" id="register-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="username">Username *</label>
-                        <input type="text" class="form-control" id="username" name="username"
-                            placeholder="Choose a username" 
-                           value="<?php echo htmlspecialchars($username ?? ''); ?>" required>
-                    <?php if (!empty($errors['username'])): ?>
-                            <small class="error-message"><?php echo htmlspecialchars($errors['username']); ?></small>
-                    <?php endif; ?>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="email">Email Address *</label>
-                        <input type="email" class="form-control" id="email" name="email"
-                            placeholder="Your email address" value="<?php echo htmlspecialchars($email ?? ''); ?>" required>
-                    <?php if (!empty($errors['email'])): ?>
-                            <small class="error-message"><?php echo htmlspecialchars($errors['email']); ?></small>
-                    <?php endif; ?>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="password">Password *</label>
-                        <input type="password" class="form-control" id="password" name="password"
-                            placeholder="Create a password" required>
-                        <span class="password-toggle" id="password-toggle">
-                            <i class="fas fa-eye"></i>
-                        </span>
-                        <div class="password-strength">
-                            <div class="password-strength-bar" id="password-strength-bar"></div>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10">
+                <div class="auth-card">
+                    <div class="card-header">
+                        <div class="logo-container">
+                            <img src="../assets/images/logo.png" alt="WaveMaster Outboards" class="logo">
+                            <h1>WaveMaster Outboards</h1>
                         </div>
-                        <div class="password-strength-text" id="password-strength-text">Password strength</div>
-                        <?php if (!empty($errors['password'])): ?>
-                            <small class="error-message"><?php echo htmlspecialchars($errors['password']); ?></small>
-                    <?php endif; ?>
+                        <h2 class="animate-float">Create Your Account</h2>
+                        <p>Join our community of boating enthusiasts</p>
                     </div>
 
-                    <div class="form-group">
-                        <label for="confirm_password">Confirm Password *</label>
-                        <input type="password" class="form-control" id="confirm_password" name="confirm_password"
-                            placeholder="Confirm your password" required>
-                        <span class="password-toggle" id="confirm-password-toggle">
-                            <i class="fas fa-eye"></i>
-                        </span>
-                        <?php if (!empty($errors['confirm_password'])): ?>
-                            <small class="error-message"><?php echo htmlspecialchars($errors['confirm_password']); ?></small>
-                    <?php endif; ?>
+                    <div class="card-body">
+                        <?php if ($error): ?>
+                            <div class="alert alert-danger animate-shake">
+                                <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($success): ?>
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success); ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <form method="POST" action="" class="auth-form">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="username" class="form-label">
+                                            <i class="fas fa-user"></i> Username *
+                                        </label>
+                                        <input type="text" class="form-control" id="username" name="username"
+                                            value="<?php echo htmlspecialchars($formData['username']); ?>" required
+                                            placeholder="Choose a username">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="email" class="form-label">
+                                            <i class="fas fa-envelope"></i> Email Address *
+                                        </label>
+                                        <input type="email" class="form-control" id="email" name="email"
+                                            value="<?php echo htmlspecialchars($formData['email']); ?>" required
+                                            placeholder="Enter your email">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="password" class="form-label">
+                                            <i class="fas fa-lock"></i> Password *
+                                        </label>
+                                        <input type="password" class="form-control" id="password" name="password"
+                                            required placeholder="At least 8 characters">
+                                        <div class="password-toggle">
+                                            <i class="fas fa-eye" id="togglePassword"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="confirm_password" class="form-label">
+                                            <i class="fas fa-lock"></i> Confirm Password *
+                                        </label>
+                                        <input type="password" class="form-control" id="confirm_password"
+                                            name="confirm_password" required placeholder="Confirm your password">
+                                        <div class="password-toggle">
+                                            <i class="fas fa-eye" id="toggleConfirmPassword"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="first_name" class="form-label">
+                                            <i class="fas fa-id-card"></i> First Name *
+                                        </label>
+                                        <input type="text" class="form-control" id="first_name" name="first_name"
+                                            value="<?php echo htmlspecialchars($formData['first_name']); ?>" required
+                                            placeholder="Your first name">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="last_name" class="form-label">
+                                            <i class="fas fa-id-card"></i> Last Name *
+                                        </label>
+                                        <input type="text" class="form-control" id="last_name" name="last_name"
+                                            value="<?php echo htmlspecialchars($formData['last_name']); ?>" required
+                                            placeholder="Your last name">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="phone" class="form-label">
+                                            <i class="fas fa-phone"></i> Phone Number
+                                        </label>
+                                        <input type="tel" class="form-control" id="phone" name="phone"
+                                            value="<?php echo htmlspecialchars($formData['phone']); ?>"
+                                            placeholder="Your phone number">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="address" class="form-label">
+                                            <i class="fas fa-home"></i> Address
+                                        </label>
+                                        <input type="text" class="form-control" id="address" name="address"
+                                            value="<?php echo htmlspecialchars($formData['address']); ?>"
+                                            placeholder="Your address">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="city" class="form-label">
+                                            <i class="fas fa-city"></i> City
+                                        </label>
+                                        <input type="text" class="form-control" id="city" name="city"
+                                            value="<?php echo htmlspecialchars($formData['city']); ?>"
+                                            placeholder="Your city">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="state" class="form-label">
+                                            <i class="fas fa-map-marker-alt"></i> State
+                                        </label>
+                                        <input type="text" class="form-control" id="state" name="state"
+                                            value="<?php echo htmlspecialchars($formData['state']); ?>"
+                                            placeholder="Your state">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="zip_code" class="form-label">
+                                            <i class="fas fa-mail-bulk"></i> ZIP Code
+                                        </label>
+                                        <input type="text" class="form-control" id="zip_code" name="zip_code"
+                                            value="<?php echo htmlspecialchars($formData['zip_code']); ?>"
+                                            placeholder="Your ZIP code">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group form-check">
+                                <input type="checkbox" class="form-check-input" id="terms" name="terms" required>
+                                <label class="form-check-label" for="terms">
+                                    I agree to the <a href="../terms.php" class="link-sea">Terms of Service</a> and <a
+                                        href="../privacy.php" class="link-sea">Privacy Policy</a>
+                                </label>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg btn-block waves-effect">
+                                <i class="fas fa-user-plus"></i> Create Account
+                            </button>
+                        </form>
+
+                        <div class="auth-links">
+                            <a href="login.php" class="link-sea">
+                                <i class="fas fa-sign-in-alt"></i> Already have an account? Sign In
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <p>&copy; <?php echo date('Y'); ?> WaveMaster Outboards. All rights reserved.</p>
                     </div>
                 </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="first_name">First Name *</label>
-                        <input type="text" class="form-control" id="first_name" name="first_name"
-                            placeholder="Your first name" value="<?php echo htmlspecialchars($first_name ?? ''); ?>" required>
-                    <?php if (!empty($errors['first_name'])): ?>
-                            <small class="error-message"><?php echo htmlspecialchars($errors['first_name']); ?></small>
-                    <?php endif; ?>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="last_name">Last Name *</label>
-                        <input type="text" class="form-control" id="last_name" name="last_name"
-                            placeholder="Your last name" value="<?php echo htmlspecialchars($last_name ?? ''); ?>" required>
-                    <?php if (!empty($errors['last_name'])): ?>
-                            <small class="error-message"><?php echo htmlspecialchars($errors['last_name']); ?></small>
-                    <?php endif; ?>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="phone">Phone Number</label>
-                        <input type="tel" class="form-control" id="phone" name="phone"
-                            placeholder="Your phone number"  value="<?php echo htmlspecialchars($phone ?? ''); ?>">>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="country">Country</label>
-                        <select class="form-control" id="country" name="country">
-                            <option value="">Select Country</option>
-                            <option value="USA" selected>United States</option>
-                            <option value="CAN">Canada</option>
-                            <option value="UK">United Kingdom</option>
-                            <option value="AUS">Australia</option>
-                            <!-- More options will be added by PHP -->
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group form-group-full">
-                    <label for="address">Address</label>
-                    <input type="text" class="form-control" id="address" name="address"
-                        placeholder="Your street address">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="city">City</label>
-                        <input type="text" class="form-control" id="city" name="city" placeholder="Your city">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="state">State</label>
-                        <input type="text" class="form-control" id="state" name="state" placeholder="Your state">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="zip_code">ZIP Code</label>
-                        <input type="text" class="form-control" id="zip_code" name="zip_code"
-                            placeholder="Your ZIP code">
-                    </div>
-                </div>
-
-                <div class="terms-agree">
-                    <input type="checkbox" id="terms" name="terms" required>
-                    <label for="terms">I agree to the <a href="<?php echo BASE_URL; ?>pages/terms.php">Terms of
-                            Service</a> and <a href="<?php echo BASE_URL; ?>pages/privacy.php">Privacy Policy</a>
-                        *</label>
-                </div>
-
-                <div class="terms-agree">
-                    <input type="checkbox" id="newsletter" name="newsletter" checked>
-                    <label for="newsletter">Send me updates about new products, promotions, and boating tips</label>
-                </div>
-
-                <button type="submit" class="btn-register" name="register">Create Account</button>
-            </form>
-
-            <div class="register-divider">
-                <span>Or sign up with</span>
-            </div>
-
-            <button class="btn-social">
-                <img src="<?php echo BASE_URL; ?>assets/images/icons/google.png" alt="Google">
-                Sign up with Google
-            </button>
-
-            <button class="btn-social">
-                <img src="<?php echo BASE_URL; ?>assets/images/icons/facebook.png" alt="Facebook">
-                Sign up with Facebook
-            </button>
-
-            <div class="register-footer">
-                Already have an account? <a href="<?php echo BASE_URL; ?>pages/account/login.php">Sign in here</a>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Password visibility toggle
-        const passwordToggle = document.getElementById('password-toggle');
-        const passwordField = document.getElementById('password');
-        const confirmPasswordToggle = document.getElementById('confirm-password-toggle');
-        const confirmPasswordField = document.getElementById('confirm_password');
+    // Password visibility toggle
+    document.getElementById('togglePassword').addEventListener('click', function () {
+        const passwordInput = document.getElementById('password');
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+    });
 
-        passwordToggle.addEventListener('click', function() {
-            if (passwordField.type === 'password') {
-                passwordField.type = 'text';
-                passwordToggle.innerHTML = '<i class="fas fa-eye-slash"></i>';
-            } else {
-                passwordField.type = 'password';
-                passwordToggle.innerHTML = '<i class="fas fa-eye"></i>';
-            }
-        });
+    document.getElementById('toggleConfirmPassword').addEventListener('click', function () {
+        const passwordInput = document.getElementById('confirm_password');
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+    });
 
-        confirmPasswordToggle.addEventListener('click', function() {
-            if (confirmPasswordField.type === 'password') {
-                confirmPasswordField.type = 'text';
-                confirmPasswordToggle.innerHTML = '<i class="fas fa-eye-slash"></i>';
-            } else {
-                confirmPasswordField.type = 'password';
-                confirmPasswordToggle.innerHTML = '<i class="fas fa-eye"></i>';
-            }
-        });
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function (e) {
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
 
-        // Password strength indicator
-        passwordField.addEventListener('input', function() {
-            const password = passwordField.value;
-            const strengthBar = document.getElementById('password-strength-bar');
-            const strengthText = document.getElementById('password-strength-text');
-
-            // Reset classes
-            strengthBar.className = 'password-strength-bar';
-
-            if (password.length === 0) {
-                strengthBar.style.width = '0';
-                strengthText.textContent = 'Password strength';
-                return;
-            }
-
-            // Calculate strength
-            let strength = 0;
-
-            // Length check
-            if (password.length >= 8) strength += 1;
-
-            // Contains lowercase, uppercase, numbers, special chars
-            if (password.match(/[a-z]+/)) strength += 1;
-            if (password.match(/[A-Z]+/)) strength += 1;
-            if (password.match(/[0-9]+/)) strength += 1;
-            if (password.match(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/)) strength += 1;
-
-            // Update UI based on strength
-            if (strength < 2) {
-                strengthBar.classList.add('password-strength-weak');
-                strengthBar.style.width = '33%';
-                strengthText.textContent = 'Weak password';
-                strengthText.style.color = 'var(--danger)';
-            } else if (strength < 4) {
-                strengthBar.classList.add('password-strength-medium');
-                strengthBar.style.width = '66%';
-                strengthText.textContent = 'Medium strength password';
-                strengthText.style.color = 'var(--warning)';
-            } else {
-                strengthBar.classList.add('password-strength-strong');
-                strengthBar.style.width = '100%';
-                strengthText.textContent = 'Strong password';
-                strengthText.style.color = 'var(--success)';
-            }
-        });
-
-        // Form validation
-        const registerForm = document.getElementById('register-form');
-
-        registerForm.addEventListener('submit', function(event) {
-            let isValid = true;
-            const requiredFields = registerForm.querySelectorAll('[required]');
-
-            // Check all required fields
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    isValid = false;
-                    highlightError(field);
-                } else {
-                    removeHighlight(field);
-                }
-            });
-
-            // Check password match
-            const password = document.getElementById('password');
-            const confirmPassword = document.getElementById('confirm_password');
-
-            if (password.value !== confirmPassword.value) {
-                isValid = false;
-                highlightError(confirmPassword);
-                document.getElementById('error-message').textContent = 'Passwords do not match.';
-                document.getElementById('error-message').style.display = 'block';
-            } else {
-                removeHighlight(confirmPassword);
-            }
-
-            // Check terms agreement
-            const terms = document.getElementById('terms');
-            if (!terms.checked) {
-                isValid = false;
-                document.getElementById('error-message').textContent = 'You must agree to the Terms of Service.';
-                document.getElementById('error-message').style.display = 'block';
-            }
-
-            if (!isValid) {
-                event.preventDefault();
-                // Show error message if not already shown
-                if (!document.getElementById('error-message').style.display ||
-                    document.getElementById('error-message').style.display === 'none') {
-                    document.getElementById('error-message').textContent = 'Please fill in all required fields.';
-                    document.getElementById('error-message').style.display = 'block';
-                }
-            }
-        });
-
-        function highlightError(element) {
-            element.style.borderColor = 'var(--danger)';
-            element.style.boxShadow = '0 0 0 3px rgba(220, 53, 69, 0.2)';
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            alert('Passwords do not match!');
+            return false;
         }
 
-        function removeHighlight(element) {
-            element.style.borderColor = '';
-            element.style.boxShadow = '';
+        if (password.length < 8) {
+            e.preventDefault();
+            alert('Password must be at least 8 characters long!');
+            return false;
         }
     });
 </script>
 
-<!-- Font Awesome for icons -->
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-</body>
-
-</html>
+<?php include(__DIR__ . '/../../includes/footer.php'); ?>
