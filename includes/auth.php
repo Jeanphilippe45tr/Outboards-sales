@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/db_connection.php';
+require_once __DIR__ . '/database.php';
 
 function loginUser($username, $password)
 {
@@ -11,7 +11,6 @@ function loginUser($username, $password)
 
     if ($user && password_verify($password, $user['password_hash'])) {
         $_SESSION['user_id'] = $user['user_id'];
-        $_SESSION['username'] = $user['username'];
         $_SESSION['is_admin'] = $user['is_admin'];
         $_SESSION['email'] = $user['email'];
 
@@ -47,3 +46,4 @@ function redirectIfNotAdmin()
         exit();
     }
 }
+?>
