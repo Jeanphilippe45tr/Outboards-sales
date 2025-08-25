@@ -8,6 +8,6 @@ error_reporting(E_ALL);
 session_start();
 
 
-define('BASE_URL', 'http://localhost/outboard_motors/');
+define('BASE_URL', $_ENV['APP_URL']);
 define('ADMIN_URL', BASE_URL . 'admin/');
 ?>
