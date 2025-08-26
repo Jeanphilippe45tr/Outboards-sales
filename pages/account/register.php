@@ -749,7 +749,7 @@
                 </button>
 
                 <div class="register-footer">
-                    Already have an account? <a href="<?php echo $base_url; ?>pages/account/login.php">Sign in here</a>
+                    Already have an account? <a href="<?php echo $base_url; ?>login.php">Sign in here</a>
                 </div>
             </div>
         </div>

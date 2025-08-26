@@ -512,7 +512,7 @@
                 </button>
 
                 <div class="login-footer">
-                    Don't have an account? <a href="<?php echo $base_url; ?>pages/account/register.php">Create one
+                    Don't have an account? <a href="<?php echo $base_url; ?>register.php">Create one
                         here</a>
                 </div>
             </div>
