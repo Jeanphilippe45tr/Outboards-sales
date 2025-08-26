@@ -10,6 +10,10 @@ class Database
     public $conn;
 
     // Get database connection
+
+    /**
+     * @throws Exception
+     */
     public function getConnection()
     {
         $this->conn = null;
@@ -67,4 +71,3 @@ class Database
         return $this->conn->lastInsertId();
     }
 }
-?>

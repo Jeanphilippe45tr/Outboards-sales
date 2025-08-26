@@ -12,6 +12,10 @@ class Auth
     }
 
     // User registration
+
+    /**
+     * @throws Exception
+     */
     public function register($userData)
     {
         try {
@@ -44,20 +48,18 @@ class Auth
                 ':username' => $userData['username'],
                 ':password' => $hashedPassword,
                 ':email' => $userData['email'],
-                ':first_name' => $userData['first_name'] ?? '',
-                ':last_name' => $userData['last_name'] ?? '',
-                ':phone' => $userData['phone'] ?? '',
-                ':address' => $userData['address'] ?? '',
-                ':city' => $userData['city'] ?? '',
-                ':state' => $userData['state'] ?? '',
-                ':zip_code' => $userData['zip_code'] ?? '',
-                ':country' => $userData['country'] ?? 'USA'
+                ':first_name' => isset($userData['first_name']) ? $userData['first_name'] : '',
+                ':last_name' => isset($userData['last_name']) ? $userData['last_name'] : '',
+                ':phone' => isset($userData['phone']) ? $userData['phone'] : '',
+                ':address' => isset($userData['address']) ? $userData['address'] : '',
+                ':city' => isset($userData['city']) ? $userData['city'] : '',
+                ':state' => isset($userData['state']) ? $userData['state'] : '',
+                ':zip_code' => isset($userData['zip_code']) ? $userData['zip_code'] : '',
+                ':country' => isset($userData['country']) ? $userData['country'] : 'USA'
             ];
 
             $this->db->executeQuery($query, $params);
-            $userId = $this->db->lastInsertId();
-
-            return $userId;
+            return $this->db->lastInsertId();
 
         } catch (Exception $e) {
             error_log("Registration error: " . $e->getMessage());
@@ -66,6 +68,10 @@ class Auth
     }
 
     // User login
+
+    /**
+     * @throws Exception
+     */
     public function login($username, $password)
     {
         try {
@@ -246,12 +252,12 @@ function registerUser($data, $password)
             $data['email'],
             $data['first_name'],
             $data['last_name'],
-            $data['phone'] ?? null,
-            $data['address'] ?? null,
-            $data['city'] ?? null,
-            $data['state'] ?? null,
-            $data['zip_code'] ?? null,
-            $data['country'] ?? 'USA'
+            isset($data['phone']) ? $data['phone'] : null,
+            isset($data['address']) ? $data['address'] : null,
+            isset($data['city']) ? $data['city'] : null,
+            isset($data['state']) ? $data['state'] : null,
+            isset($data['zip_code']) ? $data['zip_code'] : null,
+            isset($data['country']) ? $data['country'] : 'USA'
         ]);
 
     } catch (PDOException $e) {
@@ -299,4 +305,3 @@ function requireAdmin()
         exit();
     }
 }
-?>

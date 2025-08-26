@@ -9,7 +9,7 @@
                 <!-- Company Info -->
                 <div class="footer-column">
                     <div class="footer-logo">
-                        <img src="<?php echo BASE_URL; ?>assets/images/icons/logo-white.png"
+                        <img src="<?php echo SITE_URL; ?>assets/images/icons/logo-white.png"
                             alt="MarinePower Outboards">
                         <span>MarinePower</span>
                     </div>
@@ -28,12 +28,12 @@
                 <div class="footer-column">
                     <h3>Quick Links</h3>
                     <ul>
-                        <li><a href="<?php echo BASE_URL; ?>index.php">Home</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/products/">Products</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/about.php">About Us</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/contact.php">Contact</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/faq.php">FAQ</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/warranty.php">Warranty</a></li>
+                        <li><a href="<?php echo SITE_URL; ?>index.php">Home</a></li>
+                        <li><a href="<?php echo SITE_URL; ?>pages/products/">Products</a></li>
+                        <li><a href="<?php echo SITE_URL; ?>pages/about.php">About Us</a></li>
+                        <li><a href="<?php echo SITE_URL; ?>pages/contact.php">Contact</a></li>
+                        <li><a href="<?php echo SITE_URL; ?>pages/faq.php">FAQ</a></li>
+                        <li><a href="<?php echo SITE_URL; ?>pages/warranty.php">Warranty</a></li>
                     </ul>
                 </div>
 
@@ -41,17 +41,17 @@
                 <div class="footer-column">
                     <h3>Product Categories</h3>
                     <ul>
-                        <li><a href="<?php echo BASE_URL; ?>pages/products/category.php?type=2-stroke">2-Stroke
+                        <li><a href="<?php echo SITE_URL; ?>pages/products/category.php?type=2-stroke">2-Stroke
                                 Motors</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/products/category.php?type=4-stroke">4-Stroke
+                        <li><a href="<?php echo SITE_URL; ?>pages/products/category.php?type=4-stroke">4-Stroke
                                 Motors</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/products/category.php?type=electric">Electric
+                        <li><a href="<?php echo SITE_URL; ?>pages/products/category.php?type=electric">Electric
                                 Motors</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/products/category.php?type=portable">Portable
+                        <li><a href="<?php echo SITE_URL; ?>pages/products/category.php?type=portable">Portable
                                 Motors</a></li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/products/category.php?hp=high">High Horsepower</a>
+                        <li><a href="<?php echo SITE_URL; ?>pages/products/category.php?hp=high">High Horsepower</a>
                         </li>
-                        <li><a href="<?php echo BASE_URL; ?>pages/accessories.php">Accessories</a></li>
+                        <li><a href="<?php echo SITE_URL; ?>pages/accessories.php">Accessories</a></li>
                     </ul>
                 </div>
 
@@ -83,7 +83,9 @@
                     <h3>Newsletter</h3>
                     <p>Subscribe to our newsletter for the latest products, promotions, and boating tips.</p>
                     <form class="newsletter-form">
-                        <input type="email" placeholder="Your email address" required>
+                        <label>
+                            <input type="email" placeholder="Your email address" required>
+                        </label>
                         <button type="submit">Subscribe</button>
                     </form>
                 </div>
@@ -99,9 +101,9 @@
                     <p>&copy; <?php echo date('Y'); ?> MarinePower Outboards. All rights reserved.</p>
                 </div>
                 <div class="footer-bottom-links">
-                    <a href="<?php echo BASE_URL; ?>pages/privacy.php">Privacy Policy</a>
-                    <a href="<?php echo BASE_URL; ?>pages/terms.php">Terms of Service</a>
-                    <a href="<?php echo BASE_URL; ?>pages/sitemap.php">Sitemap</a>
+                    <a href="<?php echo SITE_URL; ?>pages/privacy.php">Privacy Policy</a>
+                    <a href="<?php echo SITE_URL; ?>pages/terms.php">Terms of Service</a>
+                    <a href="<?php echo SITE_URL; ?>pages/sitemap.php">Sitemap</a>
                 </div>
                 <div class="payment-methods">
                     <i class="fab fa-cc-visa"></i>
@@ -116,13 +118,12 @@
 </footer>
 
 <!-- Scripts -->
-<script src="<?php echo BASE_URL; ?>assets/js/main.js"></script>
+<script src="<?php echo SITE_URL; ?>assets/js/main.js"></script>
 <?php
 // Load page-specific JS if defined
 if (isset($page_js)) {
-    echo '<script src="' . BASE_URL . 'assets/js/' . $page_js . '"></script>';
+    echo '<script src="' . SITE_URL . 'assets/js/' . $page_js . '"></script>';
 }
 ?>
 </body>
-
 </html>

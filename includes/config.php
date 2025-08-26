@@ -4,6 +4,7 @@
 // Site Configuration
 define('SITE_NAME', 'Outboard Sales');
 define('SITE_URL', 'http://localhost/outboard_sales');
+define('ADMIN_URL', 'http://localhost/outboard_sales/admin');
 define('SITE_EMAIL', 'info@outboardsales.com');
 define('ADMIN_EMAIL', 'admin@outboardsales.com');
 

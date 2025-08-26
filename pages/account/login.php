@@ -63,7 +63,7 @@ include(__DIR__ . '/../../includes/header.php');
                 <div class="auth-card">
                     <div class="card-header">
                         <div class="logo-container">
-                            <img src="../assets/images/logo.png" alt="WaveMaster Outboards" class="logo">
+                            <img src="/assets/images/logo.png" alt="WaveMaster Outboards" class="logo">
                             <h1>WaveMaster Outboards</h1>
                         </div>
                         <h2 class="animate-float">Welcome Back</h2>
@@ -138,4 +138,4 @@ include(__DIR__ . '/../../includes/header.php');
     });
 </script>
 
-<?php include '../includes/footer.php'; ?>
+<?php include 'includes/footer.php'; ?>

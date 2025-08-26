@@ -2,14 +2,18 @@
 // functions.php - Utility functions
 
 // Redirect to another page
-function redirect($url)
+use JetBrains\PhpStorm\NoReturn;
+use Random\RandomException;
+
+#[NoReturn]
+function redirect($url): void
 {
     header("Location: " . $url);
     exit();
 }
 
 // Sanitize input data
-function sanitizeInput($data)
+function sanitizeInput($data): array|string
 {
     if (is_array($data)) {
         return array_map('sanitizeInput', $data);
@@ -17,39 +21,40 @@ function sanitizeInput($data)
 
     $data = trim($data);
     $data = stripslashes($data);
-    $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
-
-    return $data;
+    return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
 }
 
 // Get current URL
-function getCurrentUrl()
+function getCurrentUrl(): string
 {
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
     return $protocol . "://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 }
 
 // Format price
-function formatPrice($price)
+function formatPrice($price): string
 {
     return '$' . number_format($price, 2);
 }
 
 // Generate random token
-function generateToken($length = 32)
+/**
+ * @throws RandomException
+ */
+function generateToken($length = 32): string
 {
     return bin2hex(random_bytes($length));
 }
 
 // Check if request is AJAX
-function isAjaxRequest()
+function isAjaxRequest(): bool
 {
     return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
         strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 }
 
 // Get pagination parameters
-function getPaginationParams($currentPage, $itemsPerPage)
+function getPaginationParams($currentPage, $itemsPerPage): array
 {
     $currentPage = max(1, (int) $currentPage);
     $offset = ($currentPage - 1) * $itemsPerPage;
@@ -62,7 +67,10 @@ function getPaginationParams($currentPage, $itemsPerPage)
 }
 
 // Upload file with validation
-function uploadFile($file, $targetDir, $allowedTypes = [], $maxSize = 2097152)
+/**
+ * @throws Exception
+ */
+function uploadFile($file, $targetDir, $allowedTypes = [], $maxSize = 2097152): string
 {
     if ($file['error'] !== UPLOAD_ERR_OK) {
         throw new Exception("File upload error: " . $file['error']);
@@ -97,7 +105,7 @@ function uploadFile($file, $targetDir, $allowedTypes = [], $maxSize = 2097152)
 }
 
 // Delete file
-function deleteFile($filePath)
+function deleteFile($filePath): bool
 {
     if (file_exists($filePath)) {
         return unlink($filePath);
@@ -106,7 +114,8 @@ function deleteFile($filePath)
 }
 
 // Send JSON response
-function sendJsonResponse($data, $statusCode = 200)
+#[NoReturn]
+function sendJsonResponse($data, $statusCode = 200): void
 {
     http_response_code($statusCode);
     header('Content-Type: application/json');
@@ -115,7 +124,7 @@ function sendJsonResponse($data, $statusCode = 200)
 }
 
 // Validate email
-function isValidEmail($email)
+function isValidEmail($email): bool
 {
     return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
 }
@@ -131,4 +140,3 @@ function getClientIp()
         return $_SERVER['REMOTE_ADDR'];
     }
 }
-?>
